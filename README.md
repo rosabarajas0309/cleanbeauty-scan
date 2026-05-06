@@ -1,4 +1,11 @@
+<img width="1774" height="887" alt="image" src="https://github.com/user-attachments/assets/31f38dd9-54db-47e9-80ce-d09d45d79ea9" />
+
+
 # 🌸 CleanBeauty Scan
+
+<p align="center">
+  <img width="400" height="400" alt="image" src="https://github.com/user-attachments/assets/5cb9588c-c17b-486b-b052-a8ebba22452d" />
+</p>
 
 **CleanBeauty Scan** es una aplicación web diseñada para analizar ingredientes en productos cosméticos y de cuidado personal de forma rápida y sencilla.
 
