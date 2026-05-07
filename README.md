@@ -1,3 +1,4 @@
+<!--
 <img width="1774" height="887" alt="image" src="https://github.com/user-attachments/assets/31f38dd9-54db-47e9-80ce-d09d45d79ea9" />
 
 
@@ -46,3 +47,6 @@ Este proyecto aplica conceptos de compiladores en un contexto real, demostrando 
 ---
 
 ✨ *Desarrollado con enfoque en la salud, la tecnología y la simplicidad.*
+
+-->
+
