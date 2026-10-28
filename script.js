@@ -1,4 +1,25 @@
-//Analisis Sintactico - Reglas
+
+// ==========================================
+// CLEANBEAUTY SCAN
+// Analisis lexico, sintactico y semantico
+// Tokens, arbol de expresiones y errores
+// ==========================================
+
+
+// ==========================================
+// 1. VARIABLES GLOBALES
+// ==========================================
+
+let ultimoTextoAnalizado = "";
+let ultimoDetalleIngredientes = [];
+let ultimoErrorAnalisis = "";
+let hayAnalisisDisponible = false;
+
+
+// ==========================================
+// 2. NORMALIZACION DE TEXTO
+// ==========================================
+
 function normalizarTexto(texto) {
     return texto
         .toLowerCase()
@@ -7,35 +28,51 @@ function normalizarTexto(texto) {
         .replace(/[^a-z0-9, ]/g, "");
 }
 
-//Alnalisis Lexico - Tokens
+
+// Evita interpretar texto ingresado como HTML.
+function escaparHTML(texto) {
+    return String(texto).replace(/[&<>"']/g, caracter => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[caracter]);
+}
+
+
+// ==========================================
+// 3. LISTAS DE INGREDIENTES
+// ==========================================
+
 let peligrosos = [
-    "parabenos","methylparaben","propylparaben","butylparaben",
-    "ftalatos","phthalates","dep","dbp","dehp",
-    "mercurio","mercury","mercurous chloride","thimerosal",
-    "formaldehido","formaldehyde","formalin",
-    "triclosan","tolueno","toluene",
-    "bha","butylated hydroxyanisole",
-    "bht","butylated hydroxytoluene",
-    "esteres de glicol","glycol ethers",
-    "p fenilendiamina","ppd","p phenylenediamine",
-    "metilisotiazolinona","methylisothiazolinone","mit",
-    "dea","mea","tea",
-    "diethanolamine","monoethanolamine","triethanolamine",
-    "nitrosaminas","nitrosamines",
-    "dmdm hydantoin","imidazolidinyl urea",
-    "alquitran","coal tar"
+    "parabenos", "methylparaben", "propylparaben", "butylparaben",
+    "ftalatos", "phthalates", "dep", "dbp", "dehp",
+    "mercurio", "mercury", "mercurous chloride", "thimerosal",
+    "formaldehido", "formaldehyde", "formalin",
+    "triclosan", "tolueno", "toluene",
+    "bha", "butylated hydroxyanisole",
+    "bht", "butylated hydroxytoluene",
+    "esteres de glicol", "glycol ethers",
+    "p fenilendiamina", "ppd", "p phenylenediamine",
+    "metilisotiazolinona", "methylisothiazolinone", "mit",
+    "dea", "mea", "tea",
+    "diethanolamine", "monoethanolamine", "triethanolamine",
+    "nitrosaminas", "nitrosamines",
+    "dmdm hydantoin", "imidazolidinyl urea",
+    "alquitran", "coal tar"
 ].map(normalizarTexto);
 
 let irritantes = [
-    "alcohol denat","propilenglicol","propylene glycol",
-    "dioxido de titanio","titanium dioxide","tio2",
-    "sodium lauryl sulfate","laurilsulfato de sodio","sls",
+    "alcohol denat", "propilenglicol", "propylene glycol",
+    "dioxido de titanio", "titanium dioxide", "tio2",
+    "sodium lauryl sulfate", "laurilsulfato de sodio", "sls",
     "sal de aluminio",
-    "pvp va copolimero","pvp va copolymer",
-    "peg","ppg","polyethylene glycol","polypropylene glycol",
-    "fluoruro","fluoride",
-    "aluminium chlorohydrate","clorhidrato de aluminio",
-    "disodium edta","trisodium edta","edta"
+    "pvp va copolimero", "pvp va copolymer",
+    "peg", "ppg", "polyethylene glycol", "polypropylene glycol",
+    "fluoruro", "fluoride",
+    "aluminium chlorohydrate", "clorhidrato de aluminio",
+    "disodium edta", "trisodium edta", "edta"
 ].map(normalizarTexto);
 
 let seguros = [
@@ -49,232 +86,781 @@ let seguros = [
     "extracto de manzanilla", "chamomile extract"
 ].map(normalizarTexto);
 
-//Reglas
+
+// ==========================================
+// 4. CLASIFICACION DE INGREDIENTES
+// ==========================================
+
+function obtenerClasificacion(ingrediente) {
+    if (peligrosos.some(p => ingrediente.includes(p))) {
+        return "PELIGROSO";
+    }
+
+    if (irritantes.some(i => ingrediente.includes(i))) {
+        return "IRRITANTE";
+    }
+
+    if (seguros.some(s => ingrediente.includes(s))) {
+        return "SEGURO";
+    }
+
+    return "NO ENCONTRADO";
+}
+
+function obtenerColor(clasificacion) {
+    switch (clasificacion) {
+        case "PELIGROSO":
+            return "#e53935";
+        case "IRRITANTE":
+            return "#ef8c00";
+        case "SEGURO":
+            return "#218838";
+        default:
+            return "#777777";
+    }
+}
+
+
+// ==========================================
+// 5. ANALISIS PRINCIPAL
+// ==========================================
+
 function analizar() {
+    const campo = document.getElementById("ingredientes");
+    const alerta = document.getElementById("alerta");
+    const detalle = document.getElementById("detalle");
+    const resultado = document.getElementById("resultado");
 
-    let textoOriginal = document.getElementById("ingredientes").value;
-    let alerta = document.getElementById("alerta");
-    let detalle = document.getElementById("detalle");
+    const textoOriginal = campo.value;
 
-    alerta.innerHTML = "";
+    alerta.textContent = "";
     detalle.innerHTML = "";
+    resultado.innerHTML = "";
 
-    // 🔴 VALIDACIÓN SINTÁCTICA PRIMERO
-    if (textoOriginal.includes(",,")) {
-        alerta.innerHTML = "⚠ Error: Hay comas consecutivas";
-        alerta.style.color = "orange";
-        document.getElementById("modal").style.display = "none";
+    document.getElementById("modal").style.display = "none";
+    document.getElementById("modalAnalisis").style.display = "none";
+
+    ultimoTextoAnalizado = textoOriginal;
+    ultimoDetalleIngredientes = [];
+    ultimoErrorAnalisis = "";
+    hayAnalisisDisponible = true;
+
+    // Mostrar las opciones incluso si hay errores.
+    document.getElementById("opcionesAnalisis").style.display = "block";
+
+    // ERROR: ENTRADA VACIA
+    if (!textoOriginal.trim()) {
+        ultimoErrorAnalisis =
+            "Error de entrada: no se escribieron ingredientes.";
+
+        alerta.textContent =
+            "⚠ Ingresa al menos un ingrediente.";
+
+        alerta.style.color = "red";
+        mostrarAvisoError(detalle);
+
         return;
     }
 
-    // 🔵 NORMALIZACIÓN
-    let texto = normalizarTexto(textoOriginal);
-    let lista = texto.split(",");
+    // ERROR SINTACTICO: COMAS MAL COLOCADAS
+    const empiezaConComa = /^\s*,/.test(textoOriginal);
+    const terminaEnComa = /,\s*$/.test(textoOriginal);
+    const comasConsecutivas = /,\s*,/.test(textoOriginal);
+
+    const erroresSintacticos = [];
+
+    if (empiezaConComa) {
+        erroresSintacticos.push("La entrada comienza con una coma.");
+    }
+
+    if (terminaEnComa) {
+        erroresSintacticos.push("La entrada termina con una coma.");
+    }
+
+    if (comasConsecutivas) {
+        erroresSintacticos.push("Hay comas consecutivas.");
+    }
+
+    if (erroresSintacticos.length > 0) {
+        ultimoErrorAnalisis =
+            "Error sintáctico: " + erroresSintacticos.join(" ");
+    }
+
+    // NORMALIZAR Y SEPARAR
+    const texto = normalizarTexto(textoOriginal);
+
+    const lista = texto
+        .split(",")
+        .map(ingrediente => ingrediente.trim())
+        .filter(ingrediente => ingrediente.length > 0);
+
+    // Si no hay ingredientes validos, conservar los errores.
+    if (lista.length === 0) {
+        if (!ultimoErrorAnalisis) {
+            ultimoErrorAnalisis =
+                "Error: no se encontraron ingredientes válidos.";
+        }
+
+        alerta.textContent = "⚠ No hay ingredientes válidos para analizar.";
+        alerta.style.color = "red";
+
+        mostrarAvisoError(detalle);
+        return;
+    }
+
+    // ANALISIS Y CLASIFICACION
+    ultimoDetalleIngredientes = lista.map(ingrediente => ({
+        ingrediente: ingrediente,
+        clasificacion: obtenerClasificacion(ingrediente)
+    }));
 
     let hayPeligroso = false;
     let hayIrritante = false;
     let haySeguro = false;
     let hayDesconocido = false;
-    let noEncontrados = [];
 
-    lista.forEach(ing => {
-        let ingrediente = ing.trim();
-        if (!ingrediente) return;
+    ultimoDetalleIngredientes.forEach(dato => {
+        const li = document.createElement("li");
 
-        let li = document.createElement("li");
+        li.textContent =
+            dato.ingrediente + " → " + dato.clasificacion;
 
-        if (peligrosos.some(p => ingrediente.includes(p))) {
-            li.textContent = ingrediente + " → PELIGROSO";
-            li.style.color = "red";
+        li.style.color = obtenerColor(dato.clasificacion);
+
+        if (dato.clasificacion === "PELIGROSO") {
             hayPeligroso = true;
-        }
-        else if (irritantes.some(i => ingrediente.includes(i))) {
-            li.textContent = ingrediente + " → IRRITANTE";
-            li.style.color = "orange";
+        } else if (dato.clasificacion === "IRRITANTE") {
             hayIrritante = true;
-        }
-        else if (seguros.some(s => ingrediente.includes(s))) {
-            li.textContent = ingrediente + " → SEGURO";
-            li.style.color = "green";
+        } else if (dato.clasificacion === "SEGURO") {
             haySeguro = true;
-        }
-        else {
-            noEncontrados.push(ingrediente);
+        } else {
             hayDesconocido = true;
         }
 
         detalle.appendChild(li);
+        resultado.appendChild(li.cloneNode(true));
     });
 
-    // 🧠 ANÁLISIS SEMÁNTICO CORREGIDO
+    // RESULTADO GENERAL
+    let mensajeGeneral;
+    let colorGeneral;
+
     if (hayPeligroso) {
-        alerta.innerHTML = "🔴 Peligro: Contiene ingredientes peligrosos";
-        alerta.style.color = "red";
-
+        mensajeGeneral =
+            "🔴 Contiene ingredientes clasificados como peligrosos.";
+        colorGeneral = "red";
     } else if (hayIrritante) {
-        alerta.innerHTML = "🟠 Irritante: Puede causar irritación";
-        alerta.style.color = "orange";
-
+        mensajeGeneral =
+            "🟠 Contiene ingredientes clasificados como irritantes.";
+        colorGeneral = "orange";
     } else if (hayDesconocido && !haySeguro) {
-        alerta.innerHTML = "⚠ No se encontraron los ingredientes en la base de datos";
-        alerta.style.color = "gray";
-
+        mensajeGeneral =
+            "⚠ No se encontraron coincidencias en la base de datos.";
+        colorGeneral = "gray";
     } else if (haySeguro && !hayDesconocido) {
-        alerta.innerHTML = "🟢 Seguro: Producto apto para uso general";
-        alerta.style.color = "green";
-
+        mensajeGeneral =
+            "🟢 Los ingredientes identificados coinciden con la lista de seguros.";
+        colorGeneral = "green";
     } else {
-        alerta.innerHTML = "⚠ Contiene ingredientes no identificados";
-        alerta.style.color = "gray";
+        mensajeGeneral =
+            "⚠ Hay ingredientes que no se pudieron identificar.";
+        colorGeneral = "gray";
+    }
+
+    if (ultimoErrorAnalisis) {
+        alerta.textContent = "⚠ " + ultimoErrorAnalisis;
+        alerta.style.color = "red";
+        mostrarAvisoError(detalle);
+    } else {
+        alerta.textContent = mensajeGeneral;
+        alerta.style.color = colorGeneral;
     }
 
     alerta.style.fontWeight = "bold";
     alerta.style.fontSize = "18px";
 
-    // 🔍 MOSTRAR NO ENCONTRADOS
-    if (noEncontrados.length > 0) {
-        let aviso = document.createElement("p");
-        aviso.innerHTML = `
-        ⚠ <strong>Nota:</strong> Algunos ingredientes no se encuentran en la base de datos:
-        <br>${noEncontrados.join(", ")}
-        `;
-        aviso.style.color = "gray";
+    // INGREDIENTES DESCONOCIDOS
+    const noEncontrados = ultimoDetalleIngredientes
+        .filter(d => d.clasificacion === "NO ENCONTRADO")
+        .map(d => d.ingrediente);
 
+    if (noEncontrados.length > 0) {
+        const aviso = document.createElement("p");
+
+        aviso.textContent =
+            "⚠ Ingredientes no encontrados: " +
+            noEncontrados.join(", ");
+
+        aviso.style.color = "gray";
         detalle.appendChild(aviso);
     }
 
-    // 🔓 ABRIR MODAL SOLO SI TODO OK
+    // MOSTRAR RESULTADOS
     document.getElementById("modal").style.display = "block";
 }
-/*
-function analizar() {
-    let texto = document.getElementById("ingredientes").value;
-    texto = normalizarTexto(texto);
 
-    let lista = texto.split(",");
 
-    let alerta = document.getElementById("alerta");
-    let detalle = document.getElementById("detalle");
+// ==========================================
+// 6. MOSTRAR ERRORES EN LOS RESULTADOS
+// ==========================================
 
-    alerta.innerHTML = "";
-    detalle.innerHTML = "";
+function mostrarAvisoError(contenedor) {
+    const aviso = document.createElement("div");
 
-    let hayPeligroso = false;
-    let hayIrritante = false;
-    let noEncontrados = []; 
+    aviso.style.color = "#c62828";
+    aviso.style.background = "#fff0f0";
+    aviso.style.border = "1px solid #e53935";
+    aviso.style.borderRadius = "10px";
+    aviso.style.padding = "12px";
+    aviso.style.margin = "10px";
 
-    lista.forEach(ing => {
-        let ingrediente = ing.trim();
-        if (!ingrediente) return;
+    aviso.textContent = "⚠ " + ultimoErrorAnalisis;
 
-        let li = document.createElement("li");
+    contenedor.prepend(aviso);
+}
 
-        if (peligrosos.some(p => ingrediente.includes(p))) {
-            li.textContent = ingrediente + " → PELIGROSO";
-            li.style.color = "red";
-            hayPeligroso = true;
+function mostrarErrorEnAnalisis() {
+    if (!ultimoErrorAnalisis) {
+        return "";
+    }
+
+    return `
+        <div class="paso-analisis"
+             style="border:2px solid #e53935;
+                    background:#fff0f0;
+                    padding:12px;
+                    border-radius:10px;
+                    margin-bottom:15px;">
+
+            <h3 style="color:#e53935;">⚠ Error detectado</h3>
+
+            <p>${escaparHTML(ultimoErrorAnalisis)}</p>
+
+            <p>Revisa la entrada original y corrige los errores.</p>
+        </div>
+    `;
+}
+
+
+// ==========================================
+// 7. ABRIR LAS CINCO VISUALIZACIONES
+// ==========================================
+
+function mostrarAnalisis(tipo) {
+    if (!hayAnalisisDisponible) {
+        alert("Primero presiona Analizar.");
+        return;
+    }
+
+    const titulo = document.getElementById("tituloAnalisis");
+    const contenido = document.getElementById("contenidoAnalisis");
+
+    contenido.innerHTML = "";
+
+    switch (tipo) {
+        case "lexico":
+            titulo.textContent = "Análisis léxico";
+            contenido.innerHTML = visualizarLexico();
+            break;
+
+        case "sintactico":
+            titulo.textContent = "Análisis sintáctico";
+            contenido.innerHTML = visualizarSintactico();
+            break;
+
+        case "semantico":
+            titulo.textContent = "Análisis semántico";
+            contenido.innerHTML = visualizarSemantico();
+            break;
+
+        case "tokens":
+            titulo.textContent = "Tokens analizados";
+            contenido.innerHTML = visualizarTokens();
+            break;
+
+        case "arbol":
+            titulo.textContent = "Árbol de expresiones";
+            contenido.innerHTML = visualizarArbol();
+            break;
+
+        default:
+            contenido.textContent = "Análisis no disponible.";
+    }
+
+    document.getElementById("modalAnalisis").style.display = "block";
+}
+
+function cerrarAnalisis() {
+    document.getElementById("modalAnalisis").style.display = "none";
+}
+
+function cerrarModal() {
+    document.getElementById("modal").style.display = "none";
+}
+
+
+// ==========================================
+// 8. ANALISIS LEXICO VISUAL
+// ==========================================
+
+function visualizarLexico() {
+    const original = ultimoTextoAnalizado;
+    const normalizado = normalizarTexto(original);
+
+    const partes = normalizado.split(",");
+
+    let html = mostrarErrorEnAnalisis() + `
+        <div class="paso-analisis">
+            <h3>1. Entrada original</h3>
+            <p>${escaparHTML(original || "(entrada vacía)")}</p>
+        </div>
+
+        <div class="paso-analisis">
+            <h3>2. Normalización</h3>
+            <p>Conversión a minúsculas, eliminación de acentos
+            y caracteres no reconocidos por la regla.</p>
+            <code>${escaparHTML(normalizado || "(sin texto)")}</code>
+        </div>
+
+        <div class="paso-analisis">
+            <h3>3. Identificación de tokens</h3>
+    `;
+
+    let contador = 0;
+
+    partes.forEach((parte, index) => {
+        const ingrediente = parte.trim();
+
+        if (ingrediente) {
+            contador++;
+
+            html += `
+                <span class="etiqueta-token">
+                    INGREDIENTE ${contador}: ${escaparHTML(ingrediente)}
+                </span>
+            `;
+        } else {
+            html += `
+                <p class="estado-error">
+                    ✗ Segmento vacío detectado en la posición ${index + 1}.
+                </p>
+            `;
         }
-        else if (irritantes.some(i => ingrediente.includes(i))) {
-            li.textContent = ingrediente + " → IRRITANTE";
-            li.style.color = "orange";
-            hayIrritante = true;
-        }
-        else if (seguros.some(s => ingrediente.includes(s))) {
-            li.textContent = ingrediente + " → SEGURO";
-            li.style.color = "green";
-        }
-        else {
-            noEncontrados.push(ingrediente); 
-        }
 
-        detalle.appendChild(li);
+        if (index < partes.length - 1) {
+            html += `
+                <span class="etiqueta-token">SEPARADOR: ,</span>
+            `;
+        }
     });
 
-    //Analisis Semantico - Clasificaciones
-    if (hayPeligroso) {
-        alerta.innerHTML = "🔴 Peligro: Contiene ingredientes peligrosos";
-        alerta.style.color = "red";
+    html += `
+        </div>
+        <p class="${ultimoErrorAnalisis ? "estado-error" : "estado-correcto"}">
+            ${ultimoErrorAnalisis
+                ? "✗ El análisis detectó errores en la entrada."
+                : "✓ Se identificaron los términos de entrada."}
+        </p>
+    `;
 
-    } else if (hayIrritante) {
-        alerta.innerHTML = "🟠 Irritante: Puede causar irritación";
-        alerta.style.color = "orange";
+    return html;
+}
 
-    } else {
-        alerta.innerHTML = "🟢 Seguro: Producto apto para uso general";
-        alerta.style.color = "green";
-    }
 
-    alerta.style.fontWeight = "bold";
-    alerta.style.fontSize = "18px";
+// ==========================================
+// 9. ANALISIS SINTACTICO VISUAL
+// ==========================================
 
-    //MENSAJE DE INGREDIENTES NO ENCONTRADOS
-    if (noEncontrados.length > 0) {
-        let aviso = document.createElement("p");
-        aviso.innerHTML = `
-        ⚠ <strong>Nota:</strong> Algunos ingredientes no se encuentran en la base de datos:
-        <br>${noEncontrados.join(", ")}
+function visualizarSintactico() {
+    const original = ultimoTextoAnalizado;
+    const ingredientes = original.split(",");
+
+    const empiezaConComa = /^\s*,/.test(original);
+    const terminaEnComa = /,\s*$/.test(original);
+    const comasConsecutivas = /,\s*,/.test(original);
+    const entradaVacia = !original.trim();
+
+    let html = mostrarErrorEnAnalisis() + `
+        <div class="paso-analisis">
+            <h3>Regla sintáctica</h3>
+            <p>Lista de ingredientes separados por comas.</p>
+        </div>
+    `;
+
+    if (entradaVacia) {
+        html += `
+            <p class="estado-error">
+                ✗ Error: la entrada está vacía.
+                Escribe al menos un ingrediente.
+            </p>
         `;
-        aviso.style.color = "gray";
+    } else {
+        html += `
+            <div class="arbol-expresiones">
+                <div class="nodo-arbol">Lista de ingredientes</div>
+                <div class="rama-arbol"></div>
+                <div class="hijos-arbol">
+        `;
 
-        detalle.appendChild(aviso);
+        ingredientes.forEach((ing, index) => {
+            if (ing.trim()) {
+                html += `
+                    <div class="hijo-arbol">
+                        <div class="nodo-arbol">
+                            Ingrediente ${index + 1}
+                        </div>
+                        <div class="nodo-clasificacion">
+                            ${escaparHTML(ing.trim())}
+                        </div>
+                    </div>
+                `;
+            }
+        });
+
+        html += `</div></div>`;
     }
 
-    let textoOriginal = document.getElementById("ingredientes").value;
+    html += `
+        <div class="paso-analisis">
+            <h3>Validaciones sintácticas</h3>
 
+            <p class="${empiezaConComa ? "estado-error" : "estado-correcto"}">
+                ${empiezaConComa ? "✗" : "✓"}
+                La entrada no debe comenzar con una coma.
+            </p>
 
-    //ABRIR MODAL
-    document.getElementById("modal").style.display = "block";
+            <p class="${terminaEnComa ? "estado-error" : "estado-correcto"}">
+                ${terminaEnComa ? "✗" : "✓"}
+                La entrada no debe terminar con una coma.
+            </p>
 
-    if (textoOriginal.includes(",,")) {
-    alerta.innerHTML = "⚠ Error: Hay comas consecutivas";
-    alerta.style.color = "orange";
-    return;
+            <p class="${comasConsecutivas ? "estado-error" : "estado-correcto"}">
+                ${comasConsecutivas ? "✗" : "✓"}
+                No debe haber comas consecutivas.
+            </p>
+        </div>
+    `;
 
-    document.getElementById("modal").style.display = "none"; 
-    return;
+    if (empiezaConComa || terminaEnComa || comasConsecutivas || entradaVacia) {
+        html += `
+            <p class="estado-error">
+                ⚠ La entrada no cumple las reglas sintácticas básicas.
+            </p>
+        `;
+    } else {
+        html += `
+            <p class="estado-correcto">
+                ✓ La estructura cumple las validaciones básicas.
+            </p>
+        `;
+    }
+
+    return html;
 }
+
+
+// ==========================================
+// 10. ANALISIS SEMANTICO VISUAL
+// ==========================================
+
+function visualizarSemantico() {
+    let html = mostrarErrorEnAnalisis() + `
+        <div class="paso-analisis">
+            <h3>Proceso semántico</h3>
+            <p>Cada ingrediente se compara con las listas registradas
+            para determinar si coincide con un término clasificado.</p>
+        </div>
+    `;
+
+    if (ultimoDetalleIngredientes.length === 0) {
+        html += `
+            <p class="estado-error">
+                ✗ No hay ingredientes disponibles para interpretar.
+            </p>
+        `;
+
+        return html;
+    }
+
+    ultimoDetalleIngredientes.forEach(dato => {
+        const color = obtenerColor(dato.clasificacion);
+
+        let explicacion;
+
+        switch (dato.clasificacion) {
+            case "PELIGROSO":
+                explicacion = "Coincide con un término de la lista de peligrosos.";
+                break;
+            case "IRRITANTE":
+                explicacion = "Coincide con un término de la lista de irritantes.";
+                break;
+            case "SEGURO":
+                explicacion = "Coincide con un término de la lista de seguros.";
+                break;
+            default:
+                explicacion = "No se encontró coincidencia en las listas.";
+        }
+
+        html += `
+            <div class="paso-analisis">
+                <p><strong>Ingrediente:</strong>
+                    ${escaparHTML(dato.ingrediente)}
+                </p>
+
+                <p><strong>Interpretación:</strong>
+                    ${escaparHTML(explicacion)}
+                </p>
+
+                <p style="color:${color};font-weight:bold;">
+                    Resultado: ${dato.clasificacion}
+                </p>
+            </div>
+        `;
+    });
+
+    html += `
+        <div class="paso-analisis">
+            <h3>Resultado general</h3>
+            <p>${ultimoErrorAnalisis
+                ? "El resultado debe revisarse porque la entrada contiene errores."
+                : "La clasificación se obtuvo mediante las listas programadas."}
+            </p>
+            <p>Las categorías de esta aplicación no constituyen
+            una evaluación médica ni garantizan la seguridad
+            de un producto para todas las personas.</p>
+        </div>
+    `;
+
+    return html;
 }
-*/
+
+
+// ==========================================
+// 11. TABLA DE TOKENS
+// ==========================================
+
+function visualizarTokens() {
+    const texto = normalizarTexto(ultimoTextoAnalizado);
+    const partes = texto.split(",");
+
+    let html = mostrarErrorEnAnalisis() + `
+        <div class="paso-analisis">
+            <p>Tokens generados a partir de la entrada normalizada.</p>
+
+            <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:#fce4ec;">
+                            <th style="padding:8px;border:1px solid #ddd;">N.º</th>
+                            <th style="padding:8px;border:1px solid #ddd;">Tipo</th>
+                            <th style="padding:8px;border:1px solid #ddd;">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+
+    let numero = 1;
+
+    if (!ultimoTextoAnalizado.trim()) {
+        html += `
+            <tr>
+                <td colspan="3" style="padding:8px;border:1px solid #ddd;color:red;">
+                    No se generaron tokens porque la entrada está vacía.
+                </td>
+            </tr>
+        `;
+    } else {
+        partes.forEach((parte, index) => {
+            const ingrediente = parte.trim();
+
+            if (ingrediente) {
+                html += `
+                    <tr>
+                        <td style="padding:8px;border:1px solid #ddd;">
+                            ${numero++}
+                        </td>
+                        <td style="padding:8px;border:1px solid #ddd;">
+                            INGREDIENTE
+                        </td>
+                        <td style="padding:8px;border:1px solid #ddd;">
+                            ${escaparHTML(ingrediente)}
+                        </td>
+                    </tr>
+                `;
+            } else {
+                html += `
+                    <tr>
+                        <td style="padding:8px;border:1px solid #ddd;">
+                            ${numero++}
+                        </td>
+                        <td style="padding:8px;border:1px solid #ddd;color:red;">
+                            ERROR_VACIO
+                        </td>
+                        <td style="padding:8px;border:1px solid #ddd;">
+                            No hay ingrediente
+                        </td>
+                    </tr>
+                `;
+            }
+
+            if (index < partes.length - 1) {
+                html += `
+                    <tr>
+                        <td style="padding:8px;border:1px solid #ddd;">
+                            ${numero++}
+                        </td>
+                        <td style="padding:8px;border:1px solid #ddd;">
+                            SEPARADOR
+                        </td>
+                        <td style="padding:8px;border:1px solid #ddd;">,</td>
+                    </tr>
+                `;
+            }
+        });
+    }
+
+    html += `
+                    </tbody>
+                </table>
+            </div>
+            <p>Total de tokens mostrados: ${numero - 1}</p>
+        </div>
+    `;
+
+    return html;
+}
+
+
+// ==========================================
+// 12. ARBOL DE EXPRESIONES VISUAL
+// ==========================================
+
+function visualizarArbol() {
+    let html = mostrarErrorEnAnalisis() + `
+        <div class="paso-analisis">
+            <p>Representación visual de la lista y de las
+            clasificaciones obtenidas.</p>
+        </div>
+    `;
+
+    if (ultimoDetalleIngredientes.length === 0) {
+        html += `
+            <p class="estado-error">
+                ✗ No se puede construir el árbol porque no hay ingredientes válidos.
+            </p>
+        `;
+
+        return html;
+    }
+
+    html += `
+        <div class="arbol-expresiones">
+            <div class="nodo-arbol">LISTA DE INGREDIENTES</div>
+            <div class="rama-arbol"></div>
+            <div class="hijos-arbol">
+    `;
+
+    ultimoDetalleIngredientes.forEach(dato => {
+        const color = obtenerColor(dato.clasificacion);
+
+        html += `
+            <div class="hijo-arbol">
+                <div class="nodo-arbol">
+                    ${escaparHTML(dato.ingrediente)}
+                </div>
+
+                <div class="rama-arbol"></div>
+
+                <div class="nodo-clasificacion"
+                     style="color:${color};border-color:${color};">
+                    ${dato.clasificacion}
+                </div>
+            </div>
+        `;
+    });
+
+    html += `
+            </div>
+        </div>
+
+        <div class="paso-analisis">
+            <p>Las ramas conectan cada ingrediente con su clasificación.
+            Esta es una representación del procesamiento de la lista,
+            no un árbol sintáctico formal de una gramática completa.</p>
+        </div>
+    `;
+
+    return html;
+}
+
+
+// ==========================================
+// 13. REINICIAR
+// ==========================================
+
+function reiniciar() {
+    document.getElementById("ingredientes").value = "";
+    document.getElementById("resultado").innerHTML = "";
+    document.getElementById("alerta").innerHTML = "";
+    document.getElementById("detalle").innerHTML = "";
+
+    document.getElementById("modal").style.display = "none";
+    document.getElementById("modalAnalisis").style.display = "none";
+    document.getElementById("opcionesAnalisis").style.display = "none";
+
+    ultimoTextoAnalizado = "";
+    ultimoDetalleIngredientes = [];
+    ultimoErrorAnalisis = "";
+    hayAnalisisDisponible = false;
+}
+
+
+// ==========================================
+// 14. MODALES INFORMATIVOS
+// ==========================================
+
 function abrirInfo(tipo) {
-    let titulo = document.getElementById("tituloModal");
-    let contenido = document.getElementById("contenidoModal");
+    const titulo = document.getElementById("tituloModal");
+    const contenido = document.getElementById("contenidoModal");
 
     if (tipo === "nosotros") {
-        titulo.innerText = "Quiénes somos";
+        titulo.textContent = "Quiénes somos";
+
         contenido.innerHTML = `
-        <p>CleanBeauty Scan es un proyecto enfocado en el desarrollo de una herramienta tecnológica orientada al análisis de ingredientes en productos cosméticos y de cuidado personal. Surge como una iniciativa académica con el propósito de aplicar conceptos de compiladores —como análisis léxico, sintáctico y semántico— en un contexto real y útil para los usuarios.
+            <p>CleanBeauty Scan es un proyecto académico enfocado
+            en analizar ingredientes de productos cosméticos y de
+            cuidado personal.</p>
 
-        Nuestro objetivo es brindar a las personas una forma sencilla y accesible de comprender la composición de los productos que utilizan diariamente, permitiéndoles identificar ingredientes potencialmente peligrosos o irritantes para la piel. A través de un sistema automatizado, el usuario puede ingresar una lista de componentes y recibir una clasificación clara junto con recomendaciones básicas.
+            <p>Busca facilitar la comprensión de nombres técnicos
+            mediante la clasificación de ingredientes y la presentación
+            de resultados claros.</p>
 
-        El proyecto combina conocimientos de programación, desarrollo web e interfaces de usuario, dando como resultado una aplicación interactiva que prioriza la usabilidad y la claridad de la información. Además, busca fomentar la conciencia sobre el cuidado de la piel y el consumo informado de productos cosméticos.
-
-        CleanBeauty Scan está dirigido a estudiantes, usuarios interesados en el cuidado personal y cualquier persona que desee conocer más sobre los ingredientes presentes en sus productos. Como proyecto en desarrollo, continúa evolucionando con la incorporación de nuevas funcionalidades, mejoras en la base de datos de ingredientes y optimización de la experiencia del usuario.</p>
+            <p>El proyecto aplica conceptos de análisis léxico,
+            sintáctico y semántico.</p>
         `;
-    }
 
-    if (tipo === "ingredientes") {
-        titulo.innerText = "Ingredientes Clasificados";
+    } else if (tipo === "ingredientes") {
+        titulo.textContent = "Ingredientes clasificados";
+
         contenido.innerHTML = `
-        <ul>
-            <li style="color:red;">Parabenos - Peligroso</li>
-            <li style="color:orange;">Alcohol Denat - Irritante</li>
-            <li style="color:green;">Agua - Seguro</li>
-        </ul>
+            <ul>
+                <li style="color:red;">Parabenos - Peligroso</li>
+                <li style="color:orange;">Alcohol Denat - Irritante</li>
+                <li style="color:green;">Agua - Seguro</li>
+            </ul>
         `;
-    }
 
-    if (tipo === "contacto") {
-        titulo.innerText = "Contacto";
-        contenido.innerHTML = `
-        <p>Email: rosabarajas0309@gmail.com</p>
-        `;
-    }
+    } else if (tipo === "contacto") {
+        titulo.textContent = "Contacto";
 
-    if (tipo === "soporteInfo") {
-        titulo.innerText = "Soporte";
-        contenido.innerHTML = `
-        <p>Presiona el botón ❔ para reportar problemas directamente.</p>
-        `;
+        contenido.innerHTML =
+            "<p>Email: rosabarajas0309@gmail.com</p>";
+
+    } else if (tipo === "soporteInfo") {
+        titulo.textContent = "Soporte";
+
+        contenido.innerHTML =
+            "<p>Presiona el botón de ayuda para reportar un problema.</p>";
     }
 
     document.getElementById("modalInfo").style.display = "block";
@@ -284,25 +870,11 @@ function cerrarInfo() {
     document.getElementById("modalInfo").style.display = "none";
 }
 
-//REINICIAR
-function reiniciar() {
-    document.getElementById("ingredientes").value = "";
-    document.getElementById("resultado").innerHTML = "";
-    document.getElementById("alerta").innerHTML = "";
-}
 
-function cerrarModal() {
-    document.getElementById("modal").style.display = "none";
-}
+// ==========================================
+// 15. SOPORTE POR EMAILJS
+// ==========================================
 
-/*function enviarSoporte() {
-    let asunto = "Soporte CleanBeauty Scan";
-    let mensaje = "Hola, encontré un problema en el sistema:\n\nDescribe aquí el error...";
-
-    window.location.href = `mailto:rosabarajas0309@gmail.com?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(mensaje)}`;
-}*/
-
-//Boton de ayuda - Correo para admin
 function abrirSoporte() {
     document.getElementById("modalSoporte").style.display = "block";
 }
@@ -312,29 +884,65 @@ function cerrarSoporte() {
 }
 
 function enviarCorreo() {
-    let nombre = document.getElementById("nombre").value;
-    let mensaje = document.getElementById("mensaje").value;
+    const nombre = document.getElementById("nombre").value.trim();
+    const mensaje = document.getElementById("mensaje").value.trim();
 
-    let params = {
+    if (!nombre || !mensaje) {
+        alert("Por favor, completa tu nombre y el mensaje.");
+        return;
+    }
+
+    if (typeof emailjs === "undefined") {
+        alert("El servicio de correo no está disponible.");
+        return;
+    }
+
+    const params = {
         from_name: nombre,
         message: mensaje
     };
 
-    emailjs.send("service_4vmoemm", "template_wqi4zyd", params)
-    .then(function(response) {
-        alert("Mensaje enviado correctamente");
+    emailjs.send(
+        "service_4vmoemm",
+        "template_wqi4zyd",
+        params
+    ).then(function () {
+        alert("Mensaje enviado correctamente.");
+
+        document.getElementById("nombre").value = "";
+        document.getElementById("mensaje").value = "";
+
         cerrarSoporte();
-    }, function(error) {
-        alert("Error al enviar");
+
+    }).catch(function (error) {
+        console.error("Error al enviar el correo:", error);
+        alert("No se pudo enviar el mensaje. Intenta nuevamente.");
     });
 }
 
-let imagenes = ["banner1.png", "banner2.png", "banner3.png", "banner4.png"];
-let index = 0;
+
+// ==========================================
+// 16. CAMBIO AUTOMATICO DE BANNER
+// ==========================================
+
+const imagenes = [
+    "banner1.png",
+    "banner2.png",
+    "banner3.png",
+    "banner4.png"
+];
+
+let indiceBanner = 0;
 
 function cambiarBanner() {
-    index = (index + 1) % imagenes.length;
-    document.getElementById("bannerImg").src = imagenes[index];
+    const banner = document.getElementById("bannerImg");
+
+    if (!banner) return;
+
+    indiceBanner = (indiceBanner + 1) % imagenes.length;
+    banner.src = imagenes[indiceBanner];
 }
 
-setInterval(cambiarBanner, 3000); // cambia cada 3 segundos
+if (document.getElementById("bannerImg")) {
+    setInterval(cambiarBanner, 3000);
+}

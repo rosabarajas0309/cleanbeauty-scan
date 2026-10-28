@@ -67,6 +67,41 @@
     <h2>Resultado:</h2>
     <ul id="resultado"></ul>
 
+    <!-- OPCIONES DE ANÁLISIS -->
+<div id="opcionesAnalisis" class="opciones-analisis" style="display: none;">
+    <h2>Herramientas del compilador</h2>
+
+    <button onclick="mostrarAnalisis('lexico')">
+        Análisis léxico
+    </button>
+
+    <button onclick="mostrarAnalisis('sintactico')">
+        Análisis sintáctico
+    </button>
+
+    <button onclick="mostrarAnalisis('semantico')">
+        Análisis semántico
+    </button>
+
+    <button onclick="mostrarAnalisis('tokens')">
+        Tokens analizados
+    </button>
+
+    <button onclick="mostrarAnalisis('arbol')">
+        Árbol de expresiones
+    </button>
+</div>
+
+<!-- VENTANA PARA MOSTRAR LOS ANÁLISIS -->
+<div id="modalAnalisis" class="modal">
+    <div class="modal-content ventana-analisis">
+        <span class="cerrar" onclick="cerrarAnalisis()">&times;</span>
+
+        <h2 id="tituloAnalisis"></h2>
+        <div id="contenidoAnalisis"></div>
+    </div>
+</div>
+
     <!--MODAL DE RESULTADOS -->
 <div id="modal" class="modal">
     <div class="modal-content">
