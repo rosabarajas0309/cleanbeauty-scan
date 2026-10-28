@@ -1,4 +1,3 @@
-
 // ==========================================
 // CLEANBEAUTY SCAN
 // Analisis lexico, sintactico y semantico
