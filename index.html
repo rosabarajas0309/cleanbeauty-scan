@@ -165,6 +165,84 @@
     <!-- ALERTAS -->
     <h3 id="alerta"></h3>
 
+    
+<!-- CHATBOT CLEANBEAUTY SCAN -->
+
+<button
+    id="botonChat"
+    class="boton-chat"
+    type="button"
+    onclick="alternarChat()">
+    💬
+</button>
+
+<div id="ventanaChat" class="ventana-chat">
+
+    <!-- ENCABEZADO -->
+    <div class="encabezado-chat">
+        <div>
+            <h3>🌸 Beauty Assistant</h3>
+            <small>Asistente de CleanBeauty Scan</small>
+        </div>
+
+        <button
+            class="cerrar-chat"
+            type="button"
+            onclick="alternarChat()">
+            ✕
+        </button>
+    </div>
+
+    <!-- MENSAJES -->
+    <div id="mensajesChat" class="mensajes-chat">
+
+        <div class="mensaje-bot">
+            ¡Hola! 🌸 Soy Beauty Assistant.
+
+            Puedo ayudarte a conocer ingredientes cosméticos,
+            sus funciones, clasificación y posibles efectos.
+
+            ¿Qué te gustaría consultar?
+        </div>
+
+    </div>
+
+    <!-- PREGUNTAS RÁPIDAS -->
+    <div class="sugerencias-chat">
+
+        <button type="button"
+            onclick="preguntaRapida('¿Qué es la glicerina?')">
+            Glicerina
+        </button>
+
+        <button type="button"
+            onclick="preguntaRapida('¿Qué ingredientes ayudan a hidratar?')">
+            Hidratación
+        </button>
+
+        <button type="button"
+            onclick="preguntaRapida('¿Qué debo revisar si tengo piel sensible?')">
+            Piel sensible
+        </button>
+
+    </div>
+
+    <!-- FORMULARIO -->
+    <form id="formularioChat" class="entrada-chat">
+
+        <input
+            type="text"
+            id="preguntaChat"
+            placeholder="Escribe tu pregunta..."
+            autocomplete="off"
+            required>
+
+        <button type="submit">➤</button>
+
+    </form>
+
+</div>
+
     <!-- PIE DE PÁGINA -->
     <footer class="footer">
 
