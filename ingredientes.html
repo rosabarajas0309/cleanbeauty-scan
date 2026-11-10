@@ -132,6 +132,72 @@
     </div>
 
 </div>
+
+<!-- CHATBOT CLEANBEAUTY SCAN -->
+
+<button id="botonChat" class="boton-chat"
+        onclick="alternarChat()"
+        aria-label="Abrir asistente virtual">
+    💬
+</button>
+
+<div id="ventanaChat" class="ventana-chat">
+
+    <div class="encabezado-chat">
+        <div>
+            <h3>🌸 Beauty Assistant</h3>
+            <small>Asistente de CleanBeauty Scan</small>
+        </div>
+
+        <button onclick="alternarChat()" class="cerrar-chat">
+            ✕
+        </button>
+    </div>
+
+    <div id="mensajesChat" class="mensajes-chat">
+        <div class="mensaje-bot">
+            ¡Hola! 🌷 Soy tu asistente de CleanBeauty Scan.
+
+            Puedo ayudarte a conocer ingredientes, sus
+            clasificaciones y sus funciones.
+
+            ¿Qué te gustaría saber?
+        </div>
+    </div>
+
+    <div class="sugerencias-chat">
+        <button onclick="preguntaRapida('¿Para qué sirve la glicerina?')">
+            Glicerina
+        </button>
+
+        <button onclick="preguntaRapida('¿Qué ingredientes ayudan a hidratar la piel?')">
+            Hidratación
+        </button>
+
+        <button onclick="preguntaRapida('¿Qué ingredientes debo revisar si tengo acné?')">
+            Acné
+        </button>
+    </div>
+
+    <form id="formularioChat" class="entrada-chat">
+        <input
+            type="text"
+            id="preguntaChat"
+            placeholder="Escribe tu pregunta..."
+            autocomplete="off"
+            required
+        >
+
+        <button type="submit">➤</button>
+    </form>
+
+</div>
+
+<!-- Cargar el JavaScript si todavía no está vinculado -->
+<script src="script.js"></script>
+</body>
+</html>
+
 <footer class="footer">
     <p>© 2026 CleanBeauty Scan - Desarrollado por Rosa Isela Barajas Mercado. Todos los derechos reservados.</p>
 </footer>
