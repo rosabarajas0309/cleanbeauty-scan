@@ -2096,3 +2096,180 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
 });
+
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    // Evitar duplicados
+    if (document.getElementById("chatbot-boton")) return;
+
+    // Crear estilos
+    const estiloChat = document.createElement("style");
+
+    estiloChat.textContent = `
+        #chatbot-boton {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            border: none;
+            background: #e91e63;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            z-index: 999999;
+        }
+
+        #chatbot-ventana {
+            display: none;
+            position: fixed;
+            bottom: 105px;
+            right: 25px;
+            width: 320px;
+            height: 400px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px #999;
+            z-index: 999999;
+            overflow: hidden;
+            font-family: Poppins, sans-serif;
+        }
+
+        #chatbot-cabecera {
+            background: #e91e63;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #chatbot-mensajes {
+            height: 285px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #fff5f8;
+        }
+
+        #chatbot-formulario {
+            display: flex;
+            padding: 8px;
+            gap: 5px;
+        }
+
+        #chatbot-entrada {
+            width: 75%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 15px;
+        }
+
+        #chatbot-formulario button {
+            background: #e91e63;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        .mensaje-chat {
+            padding: 9px;
+            margin: 7px 0;
+            border-radius: 10px;
+            font-size: 13px;
+        }
+
+        .mensaje-bot {
+            background: #f8dce8;
+        }
+
+        .mensaje-usuario {
+            background: #e91e63;
+            color: white;
+            text-align: right;
+        }
+    `;
+
+    document.head.appendChild(estiloChat);
+
+    // Crear botón
+    const boton = document.createElement("button");
+    boton.id = "chatbot-boton";
+    boton.textContent = "💬";
+
+    // Crear ventana
+    const ventana = document.createElement("div");
+    ventana.id = "chatbot-ventana";
+
+    ventana.innerHTML = `
+        <div id="chatbot-cabecera">
+            <strong>🌸 CleanBeauty Scan</strong>
+            <button id="chatbot-cerrar" type="button">✖</button>
+        </div>
+
+        <div id="chatbot-mensajes">
+            <div class="mensaje-chat mensaje-bot">
+                ¡Hola! Soy el asistente de CleanBeauty Scan.
+                Puedes preguntarme sobre ingredientes cosméticos.
+            </div>
+        </div>
+
+        <form id="chatbot-formulario">
+            <input
+                type="text"
+                id="chatbot-entrada"
+                placeholder="Escribe tu pregunta..."
+                required
+            >
+            <button type="submit">Enviar</button>
+        </form>
+    `;
+
+    document.body.appendChild(boton);
+    document.body.appendChild(ventana);
+
+    // Abrir y cerrar
+    boton.addEventListener("click", function () {
+        ventana.style.display =
+            ventana.style.display === "block" ? "none" : "block";
+    });
+
+    document.getElementById("chatbot-cerrar").addEventListener("click", function () {
+        ventana.style.display = "none";
+    });
+
+    // Enviar mensajes
+    const formulario = document.getElementById("chatbot-formulario");
+    const entrada = document.getElementById("chatbot-entrada");
+    const mensajes = document.getElementById("chatbot-mensajes");
+
+    formulario.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const texto = entrada.value.trim();
+
+        if (texto === "") return;
+
+        const mensajeUsuario = document.createElement("div");
+        mensajeUsuario.className = "mensaje-chat mensaje-usuario";
+        mensajeUsuario.textContent = texto;
+
+        mensajes.appendChild(mensajeUsuario);
+
+        const respuesta = document.createElement("div");
+        respuesta.className = "mensaje-chat mensaje-bot";
+
+        respuesta.textContent =
+            "Gracias por tu pregunta. Escribe el nombre de un ingrediente registrado para consultar su información.";
+
+        mensajes.appendChild(respuesta);
+
+        entrada.value = "";
+        mensajes.scrollTop = mensajes.scrollHeight;
+    });
+
+    console.log("Chatbot CleanBeauty Scan inicializado correctamente.");
+
+});
