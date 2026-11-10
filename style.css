@@ -509,3 +509,35 @@ input {
     }
 }
 
+
+/* AJUSTES DEL CHATBOT */
+
+.boton-chat {
+    right: 90px;
+    z-index: 1001;
+}
+
+.ventana-chat {
+    z-index: 1002;
+    box-sizing: border-box;
+}
+
+.encabezado-chat button {
+    color: white;
+}
+
+.entrada-chat input {
+    box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+    .boton-chat {
+        right: 80px;
+    }
+
+    .ventana-chat {
+        right: 15px;
+    }
+}
+
+
